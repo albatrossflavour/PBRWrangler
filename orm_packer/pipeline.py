@@ -124,3 +124,18 @@ def pack(
         planes.append(adjust(plane, slot.black_point, slot.white_point, slot.invert))
 
     return Image.merge("RGB", planes)
+
+
+FORMATS: dict[str, str] = {"TGA": ".tga", "PNG": ".png"}
+
+
+def resolve_output_path(path: Path, fmt: str) -> Path:
+    """Force the output path's extension to match the chosen format."""
+    if fmt not in FORMATS:
+        raise ValueError(f"unknown format {fmt!r}, expected one of {list(FORMATS)}")
+    return path.with_suffix(FORMATS[fmt])
+
+
+def save(image: Image.Image, path: Path) -> None:
+    """Write the packed image. TGA is uncompressed (Pillow's default without rle=True)."""
+    image.save(path)
