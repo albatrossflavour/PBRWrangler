@@ -33,6 +33,10 @@ def load_plane(path: Path, channel: str) -> Image.Image:
         if image.mode in _SIXTEEN_BIT_MODES:
             # Pillow accepts a linear lambda for I-mode point(): scale 0..65535 to 0..255.
             image = image.convert("I").point(lambda v: v * (255 / 65535), "L")
+        elif image.mode == "F":
+            # Float bakes hold 0.0..1.0. Scale to 0..255 and clamp anything outside that range.
+            # F to L conversion clamps to 0..255; the half step gives round-to-nearest.
+            image = image.point(lambda v: v * 255 + 0.5).convert("L")
         if image.mode == "P":
             image = image.convert("RGBA")
         if channel == "Grey":

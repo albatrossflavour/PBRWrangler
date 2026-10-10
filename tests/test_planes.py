@@ -88,3 +88,20 @@ def test_load_unreadable_file_raises(tmp_path):
     bad.write_bytes(b"not an image")
     with pytest.raises(OSError):
         load_plane(bad, "Grey")
+
+
+def test_load_float_scales_unit_range_to_8bit(tmp_path):
+    path = tmp_path / "float.tif"
+    img = Image.new("F", (3, 1))
+    img.putdata([0.0, 0.5, 1.0])
+    img.save(path)
+    plane = load_plane(path, "Grey")
+    assert list(plane.get_flattened_data()) == [0, 128, 255]
+
+
+def test_load_float_clamps_out_of_range(tmp_path):
+    path = tmp_path / "hdr.tif"
+    img = Image.new("F", (2, 1))
+    img.putdata([-0.5, 2.0])
+    img.save(path)
+    assert list(load_plane(path, "Grey").get_flattened_data()) == [0, 255]
