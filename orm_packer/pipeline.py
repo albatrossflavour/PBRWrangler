@@ -39,3 +39,20 @@ def load_plane(path: Path, channel: str) -> Image.Image:
         if channel not in image.getbands():
             raise ValueError(f"{path.name} has no {channel} channel (bands: {''.join(image.getbands())})")
         return image.getchannel(channel)
+
+
+def adjust(plane: Image.Image, black_point: int, white_point: int, invert: bool) -> Image.Image:
+    """Apply input levels then optional invert to an L plane."""
+    if not (0 <= black_point < white_point <= 255):
+        raise ValueError(
+            f"levels need 0 <= black < white <= 255, got black={black_point} white={white_point}"
+        )
+    scale = 255 / (white_point - black_point)
+
+    def level(v: int) -> int:
+        return max(0, min(255, round((v - black_point) * scale)))
+
+    out = plane.point(level)
+    if invert:
+        out = out.point(lambda v: 255 - v)
+    return out
