@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
@@ -56,3 +57,70 @@ def adjust(plane: Image.Image, black_point: int, white_point: int, invert: bool)
     if invert:
         out = out.point(lambda v: 255 - v)
     return out
+
+
+class SizeMismatch(ValueError):
+    """Input files do not share one size."""
+
+
+@dataclass
+class Slot:
+    path: Path | None = None
+    channel: str = "Grey"
+    invert: bool = False
+    black_point: int = 0
+    white_point: int = 255
+    flat_value: int | None = None  # 0..100, overrides path when set
+
+    @property
+    def loads_file(self) -> bool:
+        return self.flat_value is None and self.path is not None
+
+
+_SLOT_NAMES = ("AO", "Roughness", "Metallic")
+
+
+def needs_size(*slots: Slot) -> bool:
+    """True when no slot will load a file, so the caller must supply an output size."""
+    return not any(slot.loads_file for slot in slots)
+
+
+def pack(
+    ao: Slot,
+    roughness: Slot,
+    metallic: Slot,
+    size: tuple[int, int] | None = None,
+) -> Image.Image:
+    """Pack three slots into an RGB image. Raises on any bad input; writes nothing."""
+    slots = (ao, roughness, metallic)
+
+    loaded: dict[str, Image.Image] = {}
+    for name, slot in zip(_SLOT_NAMES, slots):
+        if slot.loads_file:
+            assert slot.path is not None
+            loaded[name] = load_plane(slot.path, slot.channel)
+
+    if loaded:
+        sizes = {name: plane.size for name, plane in loaded.items()}
+        if len(set(sizes.values())) > 1:
+            detail = ", ".join(
+                f"{name} {slot.path.name} {sizes[name][0]}x{sizes[name][1]}"
+                for name, slot in zip(_SLOT_NAMES, slots)
+                if name in sizes
+            )
+            raise SizeMismatch(f"input sizes differ: {detail}")
+        size = next(iter(sizes.values()))
+    elif size is None:
+        raise ValueError("no input files loaded, so an output size is required")
+
+    planes = []
+    for name, slot in zip(_SLOT_NAMES, slots):
+        if slot.flat_value is not None:
+            plane = flat_plane(slot.flat_value, size)
+        elif slot.path is None:
+            plane = black_plane(size)
+        else:
+            plane = loaded[name]
+        planes.append(adjust(plane, slot.black_point, slot.white_point, slot.invert))
+
+    return Image.merge("RGB", planes)
