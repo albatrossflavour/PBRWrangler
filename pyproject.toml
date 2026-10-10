@@ -1,0 +1,22 @@
+[project]
+name = "orm-packer"
+version = "0.1.0"
+description = "Pack AO, roughness, and metallic maps into one ORM texture"
+requires-python = ">=3.12"
+dependencies = ["Pillow>=10"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pyinstaller>=6"]
+
+[project.scripts]
+orm-packer = "orm_packer.gui:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["orm_packer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
