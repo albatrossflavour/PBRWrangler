@@ -1,5 +1,7 @@
-# ORM Packer
+# PBRWrangler
 
+
+A small Windows tool for wrangling PBR texture maps. The first job it does is ORM packing.
 Packs three greyscale PBR maps into one ORM texture: ambient occlusion in red, roughness in green, metallic in blue. Replaces:
 
     magick AmbientOcclusion.tga Roughness.tga Metallic.tga -set colorspace sRGB -combine ORM.tga
